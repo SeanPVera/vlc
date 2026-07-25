@@ -505,8 +505,11 @@ static int StartDecode( demux_t *p_demux )
                     if ( !psz_next[0] || !psz_next[1] || !psz_next[2] )
                         break;
                     i_page = strtol( psz_parser, NULL, 0 );
+                    uint8_t *p_realloc = realloc( p_dr, i_dr_size + 5 );
+                    if( p_realloc == NULL )
+                        break;
+                    p_dr = p_realloc;
                     i_dr_size += 5;
-                    p_dr = realloc( p_dr, i_dr_size );
                     p_dr[i_dr_size - 5] = *psz_next++;
                     p_dr[i_dr_size - 4] = *psz_next++;
                     p_dr[i_dr_size - 3] = *psz_next++;

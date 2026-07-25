@@ -4452,7 +4452,8 @@ static int MP4_ReadBox_tfra( stream_t *p_stream, MP4_Box_t *p_box )
     MP4_GET4BYTES( i_lengths );
     MP4_GET4BYTES( p_tfra->i_number_of_entries );
     i_number_of_entries = p_tfra->i_number_of_entries;
-    p_tfra->i_length_size_of_traf_num = i_lengths >> 4;
+    /* Only the 6 lowest bits are defined, the rest is reserved (14496-12) */
+    p_tfra->i_length_size_of_traf_num = ( i_lengths & 0x30 ) >> 4;
     p_tfra->i_length_size_of_trun_num = ( i_lengths & 0x0c ) >> 2;
     p_tfra->i_length_size_of_sample_num = i_lengths & 0x03;
 

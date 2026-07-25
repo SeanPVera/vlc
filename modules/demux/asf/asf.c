@@ -1059,8 +1059,11 @@ static int DemuxInit( demux_t *p_demux )
                                      sizeof( WAVEFORMATEX ) ),
                              INT_MAX, uint32_t );
                 fmt.p_extra = malloc( fmt.i_extra );
-                memcpy( fmt.p_extra, &p_data[sizeof( WAVEFORMATEX )],
-                        fmt.i_extra );
+                if( fmt.p_extra == NULL )
+                    fmt.i_extra = 0;
+                else
+                    memcpy( fmt.p_extra, &p_data[sizeof( WAVEFORMATEX )],
+                            fmt.i_extra );
             }
             msg_Dbg( p_demux, "added new audio stream (codec:%4.4s(0x%x),ID:%d)",
                 (char*)&fmt.i_codec, GetWLE( p_data ), p_sp->i_stream_number );
@@ -1105,8 +1108,12 @@ static int DemuxInit( demux_t *p_demux )
                                      sizeof( VLC_BITMAPINFOHEADER ) ),
                              UINT_MAX, uint32_t );
                 fmt.p_extra = malloc( fmt.i_extra );
-                memcpy( fmt.p_extra, &p_data[sizeof( VLC_BITMAPINFOHEADER )],
-                        fmt.i_extra );
+                if( fmt.p_extra == NULL )
+                    fmt.i_extra = 0;
+                else
+                    memcpy( fmt.p_extra,
+                            &p_data[sizeof( VLC_BITMAPINFOHEADER )],
+                            fmt.i_extra );
             }
 
             /* Look for an aspect ratio */
