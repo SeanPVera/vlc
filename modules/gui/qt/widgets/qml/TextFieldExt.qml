@@ -43,16 +43,31 @@ TextField {
 
     verticalAlignment: Text.AlignVCenter
 
-    property real radius
+    property real radius: VLCStyle.textField_radius
 
     background: Rectangle {
         implicitWidth: 200
         implicitHeight: 40
-        border.width: control.enabled ? VLCStyle.dp(2, VLCStyle.scale) : 0
+
+        // hairline when idle, thicker accent ring once focused
+        border.width: {
+            if (!control.enabled)
+                return 0
+            return control.activeFocus ? VLCStyle.focus_border : VLCStyle.border
+        }
+
         color: theme.bg.primary
         border.color: theme.border
         border.pixelAligned: (radius < Number.EPSILON)
         radius: control.radius
+
+        Behavior on border.color {
+            enabled: theme.initialized
+
+            ColorAnimation {
+                duration: VLCStyle.duration_short
+            }
+        }
     }
 
 }

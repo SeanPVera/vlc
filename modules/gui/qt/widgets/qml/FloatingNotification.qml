@@ -74,7 +74,7 @@ Column {
             width: notifText.implicitWidth
             height: notifText.implicitHeight
 
-            radius: VLCStyle.dp(3, VLCStyle.scale)
+            radius: VLCStyle.radius_normal
 
             scale: 0
 

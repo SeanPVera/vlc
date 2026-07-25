@@ -244,6 +244,7 @@ Item {
 
         background: Rectangle {
             color: theme.bg.primary
+            radius: VLCStyle.radius_xsmall
         }
     }
 }

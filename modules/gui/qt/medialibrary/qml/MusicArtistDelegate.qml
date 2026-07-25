@@ -148,6 +148,7 @@ T.ItemDelegate {
         enabled: theme.initialized
         color: (root.isCurrent || root.selected) ? theme.bg.highlight : theme.bg.primary
         border.color: visualFocus ? theme.visualFocus : Qt.alpha(theme.visualFocus, 0.0)
+        radius: VLCStyle.listItem_radius
 
         Widgets.CurrentIndicator {
             anchors {

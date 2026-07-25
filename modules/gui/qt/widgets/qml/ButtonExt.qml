@@ -104,6 +104,9 @@ T.Button {
         border.color: control.visualFocus ? control.colorFocus
                                           : (theme.border.a > 0.0 ? theme.border : color)
 
+        // hairline bezel, thicker only for the focus ring
+        border.width: control.visualFocus ? VLCStyle.focus_border : VLCStyle.border
+
         radius: control.radius
 
         Rectangle {

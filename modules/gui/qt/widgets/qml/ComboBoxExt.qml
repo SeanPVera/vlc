@@ -92,18 +92,18 @@ T.ComboBox {
         enabled: theme.initialized
         color: control.bgColor
         border.color: theme.border
-        border.width: VLCStyle.dp(2, VLCStyle.scale)
-        radius: VLCStyle.dp(2, VLCStyle.scale)
+        border.width: control.activeFocus ? VLCStyle.focus_border : VLCStyle.border
+        radius: VLCStyle.combobox_radius
     }
 
     popup: Popup {
-        y: control.height - 1
+        y: control.height + VLCStyle.margin_xxxsmall
 
         // NOTE: This Popup should be on top of other Popup(s) most of the time.
         z: 100
 
         width: control.width
-        padding: 1
+        padding: VLCStyle.margin_xxxsmall
 
         contentItem: ListView {
             clip: true
@@ -115,6 +115,7 @@ T.ComboBox {
                 enabled: theme.initialized
                 border.color: visualFocus ? theme.visualFocus : Qt.alpha(theme.visualFocus, 0.0)
                 color: theme.bg.secondary
+                radius: VLCStyle.radius_xsmall
             }
 
             ScrollIndicator.vertical: ScrollIndicator { }
@@ -124,7 +125,7 @@ T.ComboBox {
             color: control.bgColor
             border.color: control.borderColor
             border.pixelAligned: (radius < Number.EPSILON)
-            radius: 2
+            radius: VLCStyle.radius_normal
         }
     }
 }

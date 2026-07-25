@@ -129,6 +129,8 @@ T.Control {
 
         enabled: theme.initialized
 
+        radius: VLCStyle.listItem_radius
+
         border.color: delegate.visualFocus ? theme.visualFocus : Qt.alpha(theme.visualFocus, 0.0)
 
         Widgets.CurrentIndicator {

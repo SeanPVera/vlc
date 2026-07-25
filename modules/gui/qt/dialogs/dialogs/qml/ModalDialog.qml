@@ -85,6 +85,20 @@ Dialog {
 
     background: Rectangle {
         color: theme.bg.primary
+
+        radius: VLCStyle.popup_radius
+
+        border.color: theme.border
+        border.width: VLCStyle.border
+        border.pixelAligned: (radius < Number.EPSILON)
+
+        Widgets.RoundedRectangleShadow {
+            blurRadius: VLCStyle.dp(24, VLCStyle.scale)
+
+            yOffset: VLCStyle.dp(8, VLCStyle.scale)
+
+            color: theme.shadow
+        }
     }
 
     //FIXME use the right xxxLabel class
@@ -95,18 +109,16 @@ Dialog {
         font.bold: true
         color: theme.fg.primary
         padding: 6
-        background: Rectangle {
-            x: 1; y: 1
-            width: parent.width - 2
-            height: parent.height - 1
-            color: theme.bg.primary
-        }
     }
 
+    // Dialogs settle in place instead of just fading, which reads as the
+    // sheet being pushed towards the user.
     exit: Transition {
-        OpacityAnimator { from: 1.0; to: 0.0 }
+        NumberAnimation { property: "opacity"; from: 1.0; to: 0.0; duration: VLCStyle.duration_short }
+        NumberAnimation { property: "scale"; from: 1.0; to: 0.96; duration: VLCStyle.duration_short; easing.type: Easing.InQuad }
     }
     enter: Transition {
-        OpacityAnimator { from: 0.0; to: 1.0 }
+        NumberAnimation { property: "opacity"; from: 0.0; to: 1.0; duration: VLCStyle.duration_long }
+        NumberAnimation { property: "scale"; from: 0.94; to: 1.0; duration: VLCStyle.duration_long; easing.type: Easing.OutBack; easing.overshoot: 0.6 }
     }
 }

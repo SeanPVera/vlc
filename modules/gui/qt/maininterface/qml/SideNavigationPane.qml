@@ -153,8 +153,8 @@ T.Pane {
 
                     property real preferredHeight: VLCStyle.buttonHeightNavigationPane
 
-                    leftPadding: root.safeAreaLeftMargin + VLCStyle.margin_xsmall
-                    rightPadding: root.safeAreaRightMargin
+                    leftPadding: root.safeAreaLeftMargin + VLCStyle.margin_normal
+                    rightPadding: root.safeAreaRightMargin + VLCStyle.margin_normal
 
                     iconTxt: model.icon
                     text: model.title
@@ -211,8 +211,8 @@ T.Pane {
 
                 onLoaded: {
                     item.background.visible = false
-                    item.leftPadding = Qt.binding(function() { return root.safeAreaLeftMargin + VLCStyle.margin_small })
-                    item.rightPadding = Qt.binding(function() { return root.safeAreaRightMargin + VLCStyle.margin_small })
+                    item.leftPadding = Qt.binding(function() { return root.safeAreaLeftMargin + VLCStyle.margin_normal })
+                    item.rightPadding = Qt.binding(function() { return root.safeAreaRightMargin + VLCStyle.margin_normal })
                 }
             }
 
@@ -222,8 +222,8 @@ T.Pane {
                 Layout.fillWidth: true
                 Layout.preferredHeight: VLCStyle.buttonHeightNavigationPane
 
-                leftPadding: root.safeAreaLeftMargin + VLCStyle.margin_xsmall
-                rightPadding: root.safeAreaRightMargin
+                leftPadding: root.safeAreaLeftMargin + VLCStyle.margin_normal
+                rightPadding: root.safeAreaRightMargin + VLCStyle.margin_normal
 
                 iconTxt: VLCIcons.settings
                 text: qsTr("Preferences")

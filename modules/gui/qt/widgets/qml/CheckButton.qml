@@ -190,6 +190,8 @@ T.Switch {
             // NOTE: We update the position when the drag has ended.
             drag.onActiveChanged: if (drag.active === false) root._applyX(x + width / 2)
 
+            // The knob is a plain disc lifted off the track with a soft
+            // shadow, the track alone carries the on/off state.
             Rectangle {
                 anchors.fill: parent
 
@@ -198,6 +200,14 @@ T.Switch {
                 radius: height / 2
 
                 color: root.colorHandle
+
+                RoundedRectangleShadow {
+                    blurRadius: VLCStyle.dp(3, VLCStyle.scale)
+
+                    yOffset: VLCStyle.dp(1, VLCStyle.scale)
+
+                    color: theme.shadow
+                }
             }
         }
     }

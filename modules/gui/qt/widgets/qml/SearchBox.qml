@@ -135,7 +135,8 @@ FocusScope {
         leftPadding: padding + VLCStyle.dp(4)
         rightPadding: (textField.width - clearButton.x)
 
-        radius: clearButton.radius
+        // capsule shaped, like a platform search field
+        radius: height / 2
 
         selectByMouse: true
 
@@ -194,6 +195,8 @@ FocusScope {
 
             font.pixelSize: VLCStyle.icon_banner
             text: VLCIcons.close
+
+            radius: height / 2
 
             description: qsTr("Clear")
 

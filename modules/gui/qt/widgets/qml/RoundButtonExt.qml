@@ -68,5 +68,6 @@ T.RoundButton {
         visible: !control.flat || control.down || control.checked || control.highlighted
         color: theme.bg.secondary // ###
         border.color: theme.border
+        border.width: VLCStyle.border
     }
 }
