@@ -3151,7 +3151,11 @@ static void AVI_ExtractSubtitle( demux_t *p_demux,
         p[4] != 0x00 || GetWLE( &p[5] ) != 0x2 )
         goto exit;
     const unsigned i_name = GetDWLE( &p[7] );
-    if( 11 + i_size <= i_name )
+    /* i_size >= 11 was checked above, so the subtraction can't underflow.
+     * The name must fit in the remaining bytes, together with its 11 byte
+     * header, otherwise the reads below would run past the buffer and the
+     * i_size accounting would wrap around. */
+    if( i_name > i_size - 11 )
         goto exit;
     if( i_name > 0 )
         psz_description = FromCharset( "UTF-16LE", &p[11], i_name );
