@@ -198,9 +198,13 @@ static int Demux( demux_t *p_demux )
 
                 if( ( p_frame = vlc_stream_Block( p_demux->s, 8 + 4 + i_pre ) ) )
                 {
+                    /* The PTS is complete as soon as 12 bytes were read,
+                     * even when no payload byte follows it */
+                    if( p_frame->i_buffer >= 12 )
+                        i_pts = GetDWBE( &p_frame->p_buffer[8] );
+
                     if( p_frame->i_buffer > 12 )
                     {
-                        i_pts = GetDWBE( &p_frame->p_buffer[8] );
                         p_frame->p_buffer += 12;
                         p_frame->i_buffer -= 12;
                         block_ChainAppend( &p_sys->p_es, p_frame );
@@ -234,7 +238,11 @@ static int Demux( demux_t *p_demux )
                 }
             }
 
-            if( i_size > 0 &&
+            /* i_size is attacker controlled and may have gone negative above.
+             * Only guard against that: when i_skip is still set the header
+             * bytes have not been consumed yet and the read must happen,
+             * otherwise the same packet would be demuxed forever. */
+            if( i_size + i_skip > 0 &&
                 ( p_frame = vlc_stream_Block( p_demux->s, i_size + i_skip ) ) )
             {
                 /* A short read may return less than the header we skip */
