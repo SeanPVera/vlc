@@ -230,6 +230,7 @@ static int updatePalette(vlc_qt_theme_provider_t* obj)
     shadow.alpha = 0.22;
 
 #define VIEW_SELECTOR "GtkListBox#list"
+#define ITEM_SELECTOR VIEW_SELECTOR " GtkListBoxRow#row.activatable"
     {
         auto CS = VQTC_SET_VIEW;
         std::string seletor = "GtkListBox#list";
@@ -238,6 +239,11 @@ static int updatePalette(vlc_qt_theme_provider_t* obj)
 
         setGtkColorSetBg(obj, CS, VQTC_NAME_SECONDARY, VIEW_SELECTOR); //use same color
         setGtkColorSetFg(obj, CS, VQTC_NAME_SECONDARY, VIEW_SELECTOR "GtkLabel#label.dim-label");
+
+        //`View` is the fallback color set of `SystemPalette::getColor()`, so the
+        //highlight roles must be defined here for every color set that does not
+        //provide its own, otherwise the lookup ends up returning magenta.
+        setGtkColorSetHighlight(obj, CS, ITEM_SELECTOR);
 
         setGtkColorSetBorder(obj, CS, VIEW_SELECTOR);
 
@@ -306,6 +312,11 @@ static int updatePalette(vlc_qt_theme_provider_t* obj)
         GdkRGBA tabButtonNormalBg = GetBgColor(TITLEBAR_SELECTOR);
         tabButtonNormalBg.alpha = 1.f;
         setGtkColor(obj, CS, VQTC_SECTION_BG, VQTC_NAME_PRIMARY, VQTC_STATE_NORMAL, tabButtonNormalBg);
+
+        //the selected entry of the navigation pane is filled with the highlight
+        //color, which for a stack switcher is the checked button
+        setGtkColorSetBg(obj, CS, VQTC_NAME_HIGHLIGHT, TABBUTTON_SELECTOR ":checked");
+        setGtkColorSetFg(obj, CS, VQTC_NAME_HIGHLIGHT, TABBUTTON_SELECTOR ":checked");
     }
 
 #define BUTTON_STANDARD_SELECTOR VIEW_SELECTOR " GtkButton#button.flat"
@@ -383,7 +394,6 @@ static int updatePalette(vlc_qt_theme_provider_t* obj)
         setGtkColor(obj, CS, VQTC_SECTION_FG, VQTC_NAME_PRIMARY, VQTC_STATE_NORMAL,  GetFgColor(tooltipSelector));
     }
 
-#define ITEM_SELECTOR VIEW_SELECTOR " GtkListBoxRow#row.activatable"
     {
         auto CS = VQTC_SET_ITEM;
         setGtkColorSetBg(obj, CS, VQTC_NAME_PRIMARY, ITEM_SELECTOR);

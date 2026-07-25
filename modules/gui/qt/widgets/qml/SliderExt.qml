@@ -100,7 +100,19 @@ T.Slider {
         radius: width / 2
 
         color: control.color
-        visible: (control.visualFocus || control.pressed) && control.enabled
+
+        // The knob shows up as soon as the slider is pointed at, not only
+        // while dragging, so the control advertises that it is draggable.
+        visible: (control.visualFocus || control.pressed || hoverHandler.hovered)
+                 && control.enabled
+
+        Widgets.RoundedRectangleShadow {
+            blurRadius: VLCStyle.dp(4, VLCStyle.scale)
+
+            yOffset: VLCStyle.dp(1, VLCStyle.scale)
+
+            color: theme.shadow
+        }
     }
 
     background: Rectangle {

@@ -273,6 +273,9 @@ T.ItemDelegate {
         //don't show the backgroud unless selected
         color: root.selected ?  theme.bg.highlight : theme.bg.primary
         border.color: visualFocus ? theme.visualFocus : Qt.alpha(theme.visualFocus, 0.0)
+
+        // follow the rounding of the cover it sits behind, plus the halo width
+        radius: VLCStyle.gridCover_radius + root.selectedBorderWidth
     }
 
     contentItem: ColumnLayout {

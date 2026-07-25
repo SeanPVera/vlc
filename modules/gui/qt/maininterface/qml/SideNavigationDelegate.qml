@@ -68,19 +68,30 @@ T.ItemDelegate {
         enabled: control.enabled
     }
 
-    background: Widgets.AnimatedBackground {
-        enabled: theme.initialized
-        color: theme.bg.primary
-        border.color: visualFocus ? theme.visualFocus : "transparent"
+    // The selection is drawn as a rounded "pill" inset from the pane edges
+    // rather than a full width bar, which keeps the sidebar reading as a list
+    // of items instead of a stack of stripes.
+    background: Item {
+        Widgets.AnimatedBackground {
+            anchors.fill: parent
 
-        Widgets.CurrentIndicator {
-            anchors {
-                left: parent.left
-                leftMargin: VLCStyle.margin_xxxsmall
-                verticalCenter: parent.verticalCenter
-            }
-            implicitHeight: parent.height * 3 / 4
-            visible: control.checked
+            // The pill is kept `sideNavigation_itemMargin` inside the content,
+            // which is itself already inset by the window safe area. Deriving
+            // the margins from the paddings is what keeps the pill out of the
+            // unsafe area.
+            anchors.topMargin: Math.round(VLCStyle.sideNavigation_itemMargin / 2)
+            anchors.bottomMargin: Math.round(VLCStyle.sideNavigation_itemMargin / 2)
+            anchors.leftMargin: Math.max(0, control.leftPadding - VLCStyle.sideNavigation_itemMargin)
+            anchors.rightMargin: Math.max(0, control.rightPadding - VLCStyle.sideNavigation_itemMargin)
+
+            enabled: theme.initialized
+
+            radius: VLCStyle.sideNavigation_itemRadius
+
+            color: control.checked ? theme.bg.highlight : theme.bg.primary
+
+            border.color: control.visualFocus ? theme.visualFocus
+                                              : Qt.alpha(theme.visualFocus, 0.0)
         }
     }
 
@@ -103,9 +114,23 @@ T.ItemDelegate {
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
 
-                color: (control.highlighted || control.checked) ? theme.accent : theme.fg.primary
+                color: {
+                    if (control.checked)
+                        return theme.fg.highlight
+                    if (control.highlighted)
+                        return theme.accent
+                    return theme.fg.primary
+                }
 
                 font.pixelSize: VLCStyle.icon_banner
+
+                Behavior on color {
+                    enabled: theme.initialized
+
+                    ColorAnimation {
+                        duration: VLCStyle.duration_short
+                    }
+                }
             }
         }
 
@@ -119,13 +144,14 @@ T.ItemDelegate {
 
             verticalAlignment: Text.AlignVCenter
 
-            color: control.checked ? theme.fg.secondary : theme.fg.primary
+            color: control.checked ? theme.fg.highlight : theme.fg.primary
 
             elide: Text.ElideRight
 
             font.pixelSize: VLCStyle.fontSize_normal
 
-            font.weight: control.checked ? Font.DemiBold : Font.Normal
+            font.weight: (control.checked || control.highlighted) ? Font.DemiBold
+                                                                  : Font.Normal
 
             //button text is already exposed
             Accessible.ignored: true

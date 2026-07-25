@@ -102,6 +102,8 @@ T.ToolButton {
 
         border.color: visualFocus ? theme.visualFocus : theme.border
 
+        border.width: control.visualFocus ? VLCStyle.focus_border : VLCStyle.border
+
         radius: control.radius
     }
 

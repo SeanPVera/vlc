@@ -214,6 +214,7 @@ T.Control {
         enabled: theme.initialized
         color: delegate.selected ? theme.bg.highlight : theme.bg.primary
         border.color: visualFocus ? theme.visualFocus : Qt.alpha(theme.visualFocus, 0.0)
+        radius: VLCStyle.listItem_radius
     }
 
     contentItem: Row {

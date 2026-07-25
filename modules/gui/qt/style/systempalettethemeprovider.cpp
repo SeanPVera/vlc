@@ -213,6 +213,12 @@ static int updatePalette(vlc_qt_theme_provider_t* obj)
         setQtColorSetBg(obj, CS, VQTC_NAME_SECONDARY, QPalette::AlternateBase);
         setQtColor(obj, CS, VQTC_SECTION_FG, VQTC_NAME_SECONDARY, VQTC_STATE_NORMAL, secondaryTextBase);
 
+        //`View` is the fallback color set of `SystemPalette::getColor()`, so the
+        //highlight roles must be defined here for every color set that does not
+        //provide its own, otherwise the lookup ends up returning magenta.
+        setQtColor(obj, CS, VQTC_SECTION_BG, VQTC_NAME_HIGHLIGHT, VQTC_STATE_NORMAL, hightlight);
+        setQtColor(obj, CS, VQTC_SECTION_FG, VQTC_NAME_HIGHLIGHT, VQTC_STATE_NORMAL, textOnHightlight);
+
         setQtColorSetBorder(obj, CS, QPalette::Base, QPalette::Text);
 
         setQtColor(obj, CS, VQTC_SECTION_DECORATION, VQTC_NAME_ACCENT, VQTC_STATE_NORMAL, accent);
@@ -310,6 +316,13 @@ static int updatePalette(vlc_qt_theme_provider_t* obj)
         setQtColor(obj, CS, VQTC_SECTION_BG, VQTC_NAME_PRIMARY, VQTC_STATE_NORMAL, buttonBgNormal);
 
         setQtColor(obj, CS, VQTC_SECTION_FG, VQTC_NAME_SECONDARY, VQTC_STATE_NORMAL, secondaryTextButton);
+
+        //the selected entry of the navigation pane is filled with the highlight color
+        const QColor tabHightlightHover = sys->m_isDark ? hightlight.lighter(110) : hightlight.darker(110);
+        setQtColor(obj, CS, VQTC_SECTION_BG, VQTC_NAME_HIGHLIGHT, VQTC_STATE_NORMAL, hightlight);
+        setQtColor(obj, CS, VQTC_SECTION_BG, VQTC_NAME_HIGHLIGHT, VQTC_STATE_FOCUSED, tabHightlightHover);
+        setQtColor(obj, CS, VQTC_SECTION_BG, VQTC_NAME_HIGHLIGHT, VQTC_STATE_HOVERED, tabHightlightHover);
+        setQtColor(obj, CS, VQTC_SECTION_FG, VQTC_NAME_HIGHLIGHT, VQTC_STATE_NORMAL, textOnHightlight);
     }
 
     //Primary action

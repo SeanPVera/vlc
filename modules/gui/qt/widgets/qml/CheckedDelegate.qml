@@ -51,6 +51,7 @@ T.ItemDelegate {
         enabled: theme.initialized
         color: control.checked ? theme.bg.highlight : theme.bg.primary
         border.color: visualFocus ? theme.visualFocus : Qt.alpha(theme.visualFocus, 0.0)
+        radius: VLCStyle.listItem_radius
     }
 
     contentItem: Item { // don't use a row, it will move text when control is unchecked
