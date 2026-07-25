@@ -554,6 +554,8 @@ void VLCMenuBar::HelpMenu(qt_intf_t *p_intf, QMenu *menu )
 {
     addDPStaticEntry( menu, qtr( "&Help" ) ,
         ":/menu/help.svg", &DialogsProvider::helpDialog, "F1" );
+    addDPStaticEntry( menu, qtr( "&Keyboard Shortcuts" ), "",
+                      &DialogsProvider::shortcutsDialog, "Ctrl+/" );
 #ifdef UPDATE_CHECK
     addDPStaticEntry( menu, qtr( "Check for &Updates..." ) , "",
                      [ctx = QPointer(p_intf->p_mi)]() {

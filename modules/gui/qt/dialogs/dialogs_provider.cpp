@@ -81,6 +81,7 @@
     X(gotoTimeDialog) \
     X(vlmDialog) \
     X(helpDialog) \
+    X(shortcutsDialog) \
     X(aboutDialog) \
     X(mediaInfoDialog) \
     X(bookmarkDialog) \
@@ -353,6 +354,11 @@ void DialogsProvider::vlmDialog()
 void DialogsProvider::helpDialog()
 {
     toggleDialogVisible(m_helpDialog);
+}
+
+void DialogsProvider::shortcutsDialog()
+{
+    toggleDialogVisible(m_shortcutsDialog);
 }
 
 #ifdef UPDATE_CHECK
