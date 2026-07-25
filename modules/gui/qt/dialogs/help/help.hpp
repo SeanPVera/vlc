@@ -37,6 +37,9 @@
 #include "ui_update.h"
 
 class QEvent;
+class QTreeWidget;
+class QTreeWidgetItem;
+class SearchLineEdit;
 
 class HelpDialog : public QVLCFrame
 {
@@ -47,6 +50,35 @@ public:
 
 public slots:
     void close() override { toggleVisible(); }
+};
+
+/**
+ * Read-only listing of the keyboard shortcuts currently in effect.
+ *
+ * Distinct from the Hotkeys preferences panel, which exists to *change*
+ * bindings: this one only answers "what are my shortcuts". It reads the live
+ * configuration rather than a fixed list, so rebound keys and per-platform
+ * defaults are reported accurately.
+ */
+class ShortcutsDialog : public QVLCFrame
+{
+    Q_OBJECT
+public:
+    ShortcutsDialog( qt_intf_t * );
+    virtual ~ShortcutsDialog();
+
+public slots:
+    void close() override { toggleVisible(); }
+
+private slots:
+    void filter();
+    void editShortcuts();
+
+private:
+    void populate();
+
+    QTreeWidget *table = nullptr;
+    SearchLineEdit *searchEdit = nullptr;
 };
 
 class AboutDialog : public QVLCDialog

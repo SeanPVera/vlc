@@ -724,11 +724,155 @@ void PlaylistController::toggleRepeatMode()
     config_PutInt( "repeat", new_repeat );
 }
 
+bool PlaylistControllerPrivate::pushUndoEntry(const QVector<int> &indexes)
+{
+    if (indexes.isEmpty())
+        return false;
+
+    const size_t count = vlc_playlist_Count(m_playlist);
+
+    UndoEntry entry;
+    for (int index : indexes)
+    {
+        if (index < 0 || (size_t)index >= count)
+            continue;
+
+        vlc_playlist_item_t *item = vlc_playlist_Get(m_playlist, index);
+        input_item_t *media = vlc_playlist_item_GetMedia(item);
+        if (media == nullptr)
+            continue;
+
+        /* Media copies the input item, so the snapshot stays valid once the
+         * playlist has dropped its own reference. */
+        try {
+            /* Extend the previous run when this index continues it, so a
+             * cleared playlist restores with a single insertion. */
+            if (!entry.isEmpty()
+             && entry.last().index + entry.last().media.size() == (size_t)index)
+                entry.last().media.push_back(Media(media));
+            else
+                entry.push_back({ (size_t)index, { Media(media) } });
+        } catch (const std::bad_alloc &) {
+            /* Undo is best-effort: a snapshot we cannot take must not stop
+             * the removal the user asked for. */
+            return false;
+        }
+    }
+
+    if (entry.isEmpty())
+        return false;
+
+    if (m_undoStack.size() == MAX_UNDO_DEPTH)
+        m_undoStack.removeFirst();
+    m_undoStack.push_back(std::move(entry));
+
+    return true;
+}
+
+void PlaylistController::removeItems(const QVector<int> &indexes)
+{
+    Q_D(PlaylistController);
+
+    if (indexes.isEmpty())
+        return;
+
+    QVector<int> sorted = indexes;
+    std::sort(sorted.begin(), sorted.end());
+
+    bool undoPushed;
+    {
+        vlc_playlist_locker lock{ d->m_playlist };
+
+        undoPushed = d->pushUndoEntry(sorted);
+
+        const size_t count = vlc_playlist_Count(d->m_playlist);
+        QVector<vlc_playlist_item_t *> itemsToRemove;
+        for (int index : sorted)
+        {
+            if (index >= 0 && (size_t)index < count)
+                itemsToRemove.push_back(vlc_playlist_Get(d->m_playlist, index));
+        }
+
+        /* Every index is resolved under the same lock that removes it, so the
+         * hint always matches and the list is only empty if the caller passed
+         * nothing but stale indexes. */
+        if (!itemsToRemove.isEmpty())
+        {
+            int ret = vlc_playlist_RequestRemove(d->m_playlist, itemsToRemove.constData(),
+                                                 itemsToRemove.size(), sorted.first());
+            if (ret != VLC_SUCCESS)
+                throw std::bad_alloc();
+        }
+    }
+
+    if (undoPushed)
+        emit canUndoChanged();
+}
+
+void PlaylistController::undo()
+{
+    Q_D(PlaylistController);
+
+    if (d->m_undoStack.isEmpty())
+        return;
+
+    const auto entry = d->m_undoStack.takeLast();
+
+    {
+        vlc_playlist_locker lock{ d->m_playlist };
+
+        /* Ascending order matters: restoring a lower block first shifts the
+         * later ones back to the positions their recorded indexes refer to. */
+        for (const auto &run : entry)
+        {
+            auto rawMedia = toRaw<input_item_t *>(run.media);
+            if (rawMedia.isEmpty())
+                continue;
+
+            /* The queue may have shrunk since the removal; clamp rather than
+             * tripping the core's range assertion. */
+            const size_t count = vlc_playlist_Count(d->m_playlist);
+            const size_t index = std::min(run.index, count);
+
+            int ret = vlc_playlist_RequestInsert(d->m_playlist, index,
+                                                 rawMedia.constData(), rawMedia.size());
+            if (ret != VLC_SUCCESS)
+                throw std::bad_alloc();
+        }
+    }
+
+    emit canUndoChanged();
+}
+
+bool PlaylistController::canUndo() const
+{
+    Q_D(const PlaylistController);
+    return !d->m_undoStack.isEmpty();
+}
+
 void PlaylistController::clear()
 {
     Q_D(PlaylistController);
-    vlc_playlist_locker lock{ d->m_playlist };
-    vlc_playlist_Clear( d->m_playlist );
+
+    bool undoPushed;
+    {
+        vlc_playlist_locker lock{ d->m_playlist };
+
+        /* Snapshot the whole queue first: clearing a hand-built play queue is
+         * the single most destructive thing this interface can do in one
+         * click. */
+        const size_t count = vlc_playlist_Count( d->m_playlist );
+        QVector<int> all;
+        all.reserve( count );
+        for( size_t i = 0; i < count; ++i )
+            all.push_back( (int)i );
+        undoPushed = d->pushUndoEntry( all );
+
+        vlc_playlist_Clear( d->m_playlist );
+    }
+
+    if( undoPushed )
+        emit canUndoChanged();
 }
 
 void PlaylistController::goTo(uint index, bool startPlaying)

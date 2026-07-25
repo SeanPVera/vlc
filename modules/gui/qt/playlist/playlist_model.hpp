@@ -67,7 +67,8 @@ public:
     /* provided for convenience */
     Q_INVOKABLE PlaylistItem itemAt(int index) const;
 
-    Q_INVOKABLE virtual void removeItems(const QVector<int> &indexes);
+    /* NOTE: removal is PlaylistController::removeItems(), not a model method,
+     * so that every removal can be undone. */
     Q_INVOKABLE virtual void moveItemsPre(const QVector<int> &indexes, int preTarget);
     Q_INVOKABLE virtual void moveItemsPost(const QVector<int> &indexes, int postTarget);
 

@@ -342,7 +342,18 @@ T.Pane {
                 }
             }
 
-            Keys.onDeletePressed: model.removeItems(selectionModel.selectedIndexesFlat)
+            Keys.onDeletePressed: MainPlaylistController.removeItems(selectionModel.selectedIndexesFlat)
+
+            // Scoped to the queue rather than registered as a global hotkey on
+            // purpose: the platform undo chord is Command+Z on macOS, which is
+            // also the default for key-random. Handling it only while the
+            // queue has focus keeps both usable.
+            Keys.onPressed: (event) => {
+                if (event.matches(StandardKey.Undo)) {
+                    MainPlaylistController.undo()
+                    event.accepted = true
+                }
+            }
 
             Navigation.parentItem: root
 

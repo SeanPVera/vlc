@@ -181,13 +181,14 @@ Item {
         component: Rectangle {
             color: errorMsgTheme.bg.negative
 
-            height: messageText.implicitHeight + VLCStyle.margin_normal
+            height: textColumn.implicitHeight + VLCStyle.margin_normal
             radius: VLCStyle.fontHeight_normal / 2
 
             property real layoutWidth: layout.width
 
             Accessible.role: Accessible.AlertMessage
-            Accessible.name: qsTr("error popup")
+            Accessible.name: detailText.visible ? (messageText.text + ". " + detailText.text)
+                                                : messageText.text
 
             RowLayout {
                 id: layout
@@ -202,20 +203,53 @@ Item {
                     Layout.leftMargin: VLCStyle.margin_xxsmall
                 }
 
-                T.Label {
-                    id: messageText
+                ColumnLayout {
+                    id: textColumn
 
-                    Layout.maximumWidth: root.width * 0.5
+                    spacing: 0
+
+                    Layout.maximumWidth: root.width * 0.6
                     Layout.leftMargin: VLCStyle.margin_xxsmall
                     Layout.rightMargin: VLCStyle.margin_xxsmall
 
-                    text: (DialogErrorModel.repeatedMessageCount > 1 ? '[' + DialogErrorModel.repeatedMessageCount + '] ' : '')
-                          + DialogErrorModel.notificationText
+                    T.Label {
+                        id: messageText
 
-                    wrapMode: Text.WrapAnywhere
-                    font.pixelSize: VLCStyle.fontSize_normal
-                    font.bold: true
-                    color: errorMsgTheme.fg.primary
+                        Layout.fillWidth: true
+
+                        text: (DialogErrorModel.repeatedMessageCount > 1 ? '[' + DialogErrorModel.repeatedMessageCount + '] ' : '')
+                              + DialogErrorModel.notificationText
+
+                        wrapMode: Text.WrapAnywhere
+                        font.pixelSize: VLCStyle.fontSize_normal
+                        font.bold: true
+                        color: errorMsgTheme.fg.primary
+                    }
+
+                    // The detail names the offending media. It is dropped when
+                    // several distinct errors share a title, since no single
+                    // detail describes them all.
+                    T.Label {
+                        id: detailText
+
+                        Layout.fillWidth: true
+
+                        visible: text.length > 0
+
+                        // Only the leading paragraph, which carries the media
+                        // identity, fits a toast. "Show Details" has the rest.
+                        text: {
+                            const detail = DialogErrorModel.notificationDetail
+                            const end = detail.indexOf('\n')
+                            return (end === -1) ? detail : detail.substring(0, end)
+                        }
+
+                        wrapMode: Text.WrapAnywhere
+                        maximumLineCount: 2
+                        elide: Text.ElideRight
+                        font.pixelSize: VLCStyle.fontSize_small
+                        color: errorMsgTheme.fg.primary
+                    }
                 }
 
                 Widgets.TextToolButton {
@@ -259,8 +293,10 @@ Item {
             interval: 5000
             repeat: false
             onTriggered: {
+                // Only hide. The errors stay unacknowledged so the application
+                // badge keeps indicating them: an error the user happened not
+                // to be looking at must not disappear without a trace.
                 errorPopup.state = "hidden"
-                DialogErrorModel.resetRepeatedMessageCount()
             }
         }
     }

@@ -79,6 +79,7 @@ class MessagesDialog;
 class GotoTimeDialog;
 class VLMDialog;
 class HelpDialog;
+class ShortcutsDialog;
 class AboutDialog;
 class MediaInfoDialog;
 class PlaylistsDialog;
@@ -111,6 +112,7 @@ public:
     Q_PROPERTY(bool gotoTimeDialogVisible READ gotoTimeDialogVisible NOTIFY gotoTimeDialogVisibleChanged FINAL)
     Q_PROPERTY(bool vlmDialogVisible READ vlmDialogVisible NOTIFY vlmDialogVisibleChanged FINAL)
     Q_PROPERTY(bool helpDialogVisible READ helpDialogVisible NOTIFY helpDialogVisibleChanged FINAL)
+    Q_PROPERTY(bool shortcutsDialogVisible READ shortcutsDialogVisible NOTIFY shortcutsDialogVisibleChanged FINAL)
     Q_PROPERTY(bool aboutDialogVisible READ aboutDialogVisible NOTIFY aboutDialogVisibleChanged FINAL)
     Q_PROPERTY(bool mediaInfoDialogVisible READ mediaInfoDialogVisible NOTIFY mediaInfoDialogVisibleChanged FINAL)
     Q_PROPERTY(bool bookmarkDialogVisible READ bookmarkDialogVisible NOTIFY bookmarkDialogVisibleChanged FINAL)
@@ -178,6 +180,7 @@ private:
     std::unique_ptr<GotoTimeDialog> m_gotoTimeDialog;
     std::unique_ptr<VLMDialog> m_vlmDialog;
     std::unique_ptr<HelpDialog> m_helpDialog;
+    std::unique_ptr<ShortcutsDialog> m_shortcutsDialog;
     std::unique_ptr<AboutDialog> m_aboutDialog;
     std::unique_ptr<MediaInfoDialog> m_mediaInfoDialog;
     std::unique_ptr<BookmarksDialog> m_bookmarkDialog;
@@ -219,6 +222,7 @@ public slots:
     void vlmDialog();
 #endif
     void helpDialog();
+    void shortcutsDialog();
 #if defined(UPDATE_CHECK)
     void updateDialog(Mode mode = Toggle);
 #endif
@@ -268,6 +272,7 @@ public:
     bool gotoTimeDialogVisible() const;
     bool vlmDialogVisible() const;
     bool helpDialogVisible() const;
+    bool shortcutsDialogVisible() const;
     bool aboutDialogVisible() const;
     bool mediaInfoDialogVisible() const;
     bool bookmarkDialogVisible() const;
@@ -291,6 +296,7 @@ signals:
     void gotoTimeDialogVisibleChanged();
     void vlmDialogVisibleChanged();
     void helpDialogVisibleChanged();
+    void shortcutsDialogVisibleChanged();
     void aboutDialogVisibleChanged();
     void mediaInfoDialogVisibleChanged();
     void bookmarkDialogVisibleChanged();

@@ -29,9 +29,13 @@
 #include "help.hpp"
 #include "util/qt_dirs.hpp"
 #include "maininterface/mainctx.hpp"
+#include "dialogs/dialogs_provider.hpp"
+#include "widgets/native/searchlineedit.hpp"
 
 #include <vlc_about.h>
 #include <vlc_intf_strings.h>
+#include <vlc_modules.h>
+#include <vlc_plugin.h>
 
 #ifdef UPDATE_CHECK
 # include <vlc_update.h>
@@ -43,8 +47,13 @@
 #include <QEvent>
 #include <QDate>
 #include <QPushButton>
+#include <QLabel>
+#include <QVBoxLayout>
+#include <QTreeWidget>
+#include <QHeaderView>
 
 #include <cassert>
+#include <cstring>
 
 #ifndef NDEBUG
 // Uncomment the following line to make use a mock update for debugging purposes,
@@ -80,6 +89,206 @@ HelpDialog::HelpDialog( qt_intf_t *_p_intf ) : QVLCFrame( _p_intf )
 HelpDialog::~HelpDialog()
 {
     saveWidgetPosition( "Help" );
+}
+
+/*****************************************************************************
+ * ShortcutsDialog
+ *****************************************************************************/
+
+namespace {
+
+/* Groups for the shortcut listing, matched against the config name by prefix.
+ * First match wins, so longer prefixes are listed before the ones they
+ * extend. Anything unmatched lands in the trailing catch-all. */
+struct ShortcutGroup
+{
+    const char *prefix;
+    const char *title;
+};
+
+const ShortcutGroup SHORTCUT_GROUPS[] =
+{
+    { "key-subsync",     N_("Subtitles")  },
+    { "key-subdelay",    N_("Subtitles")  },
+    { "key-subpos",      N_("Subtitles")  },
+    { "key-subtitle",    N_("Subtitles")  },
+    { "key-audiodelay",  N_("Audio")      },
+    { "key-audiodevice", N_("Audio")      },
+    { "key-audio",       N_("Audio")      },
+    { "key-vol",         N_("Audio")      },
+    { "key-jump",        N_("Navigation") },
+    { "key-nav",         N_("Navigation") },
+    { "key-title",       N_("Navigation") },
+    { "key-chapter",     N_("Navigation") },
+    { "key-disc",        N_("Navigation") },
+    { "key-position",    N_("Navigation") },
+    { "key-frame",       N_("Navigation") },
+    { "key-set-bookmark",  N_("Bookmarks") },
+    { "key-play-bookmark", N_("Bookmarks") },
+    { "key-crop",        N_("Video")      },
+    { "key-uncrop",      N_("Video")      },
+    { "key-zoom",        N_("Video")      },
+    { "key-unzoom",      N_("Video")      },
+    { "key-aspect",      N_("Video")      },
+    { "key-deinterlace", N_("Video")      },
+    { "key-viewpoint",   N_("Video")      },
+    { "key-projection",  N_("Video")      },
+    { "key-wallpaper",   N_("Video")      },
+    { "key-snapshot",    N_("Video")      },
+    { "key-toggle-autoscale", N_("Video") },
+    { "key-incr-scalefactor", N_("Video") },
+    { "key-decr-scalefactor", N_("Video") },
+    { "key-intf",        N_("Interface")  },
+    { "key-toggle-fullscreen", N_("Interface") },
+    { "key-leave-fullscreen",  N_("Interface") },
+    { "key-quit",        N_("Interface")  },
+    { "key-",            N_("Playback")   },
+};
+
+const char *groupForConfigName( const char *name )
+{
+    for( const ShortcutGroup &group : SHORTCUT_GROUPS )
+        if( strncmp( name, group.prefix, strlen( group.prefix ) ) == 0 )
+            return group.title;
+    return N_("Other");
+}
+
+} // namespace
+
+ShortcutsDialog::ShortcutsDialog( qt_intf_t *_p_intf ) : QVLCFrame( _p_intf )
+{
+    setWindowTitle( qtr( "Keyboard Shortcuts" ) );
+    setWindowRole( "vlc-shortcuts" );
+    setMinimumSize( 400, 350 );
+
+    QVBoxLayout *layout = new QVBoxLayout( this );
+
+    QLabel *intro = new QLabel(
+        qtr( "These are the shortcuts currently in effect, including any you "
+             "have changed." ), this );
+    intro->setWordWrap( true );
+    layout->addWidget( intro );
+
+    searchEdit = new SearchLineEdit( this );
+    searchEdit->setMinimumHeight( 26 );
+    layout->addWidget( searchEdit );
+
+    table = new QTreeWidget( this );
+    table->setColumnCount( 2 );
+    table->setAlternatingRowColors( true );
+    table->setSelectionMode( QAbstractItemView::NoSelection );
+    table->setEditTriggers( QAbstractItemView::NoEditTriggers );
+    table->setRootIsDecorated( true );
+    table->headerItem()->setText( 0, qtr( "Action" ) );
+    table->headerItem()->setText( 1, qtr( "Shortcut" ) );
+    layout->addWidget( table );
+
+    populate();
+
+    QDialogButtonBox *buttonBox = new QDialogButtonBox( this );
+    QPushButton *editButton = new QPushButton( qtr( "&Edit Shortcuts..." ) );
+    buttonBox->addButton( editButton, QDialogButtonBox::ActionRole );
+    buttonBox->addButton( new QPushButton( qtr( "&Close" ) ),
+                          QDialogButtonBox::RejectRole );
+    layout->addWidget( buttonBox );
+
+    connect( searchEdit, &SearchLineEdit::textChanged,
+             this, &ShortcutsDialog::filter );
+    connect( editButton, &QPushButton::clicked,
+             this, &ShortcutsDialog::editShortcuts );
+    connect( buttonBox, &QDialogButtonBox::rejected,
+             this, &ShortcutsDialog::close );
+
+    restoreWidgetPosition( "Shortcuts", QSize( 550, 500 ) );
+}
+
+ShortcutsDialog::~ShortcutsDialog()
+{
+    saveWidgetPosition( "Shortcuts" );
+}
+
+void ShortcutsDialog::populate()
+{
+    module_t *p_main = module_get_main();
+    assert( p_main );
+
+    unsigned confsize;
+    module_config_t *p_config = module_config_get( p_main, &confsize );
+
+    QHash<QString, QTreeWidgetItem *> groups;
+
+    for( size_t i = 0; i < confsize; i++ )
+    {
+        module_config_t *p_item = p_config + i;
+
+        if( p_item->i_type != CONFIG_ITEM_KEY )
+            continue;
+
+        /* "global-" duplicates each action for system-wide bindings; listing
+         * both would double the table for little gain here. */
+        if( strncmp( p_item->psz_name, "global-", 7 ) == 0 )
+            continue;
+
+        /* value.psz is the binding in force, not the compiled-in default, so
+         * rebound keys and per-platform defaults both come out right. */
+        const QString keys = qfu( p_item->value.psz );
+        if( keys.isEmpty() )
+            continue;
+
+        const QString groupName = qfut( groupForConfigName( p_item->psz_name ) );
+
+        QTreeWidgetItem *parent = groups.value( groupName, nullptr );
+        if( parent == nullptr )
+        {
+            parent = new QTreeWidgetItem( table );
+            parent->setText( 0, groupName );
+            parent->setFirstColumnSpanned( true );
+            parent->setExpanded( true );
+            groups.insert( groupName, parent );
+        }
+
+        QTreeWidgetItem *item = new QTreeWidgetItem( parent );
+        item->setText( 0, qfut( p_item->psz_text ) );
+        item->setText( 1, keys );
+        if( p_item->psz_longtext )
+            item->setToolTip( 0, qfut( p_item->psz_longtext ) );
+    }
+
+    module_config_free( p_config );
+
+    table->resizeColumnToContents( 0 );
+}
+
+void ShortcutsDialog::filter()
+{
+    const QString text = searchEdit->text().toLower();
+
+    for( int i = 0; i < table->topLevelItemCount(); i++ )
+    {
+        QTreeWidgetItem *group = table->topLevelItem( i );
+        int visibleChildren = 0;
+
+        for( int j = 0; j < group->childCount(); j++ )
+        {
+            QTreeWidgetItem *item = group->child( j );
+            const bool match = text.isEmpty()
+                            || item->text( 0 ).toLower().contains( text )
+                            || item->text( 1 ).toLower().contains( text );
+            item->setHidden( !match );
+            if( match )
+                visibleChildren++;
+        }
+
+        /* Hide a heading with nothing under it, so a search does not leave
+         * empty group rows behind. */
+        group->setHidden( visibleChildren == 0 );
+    }
+}
+
+void ShortcutsDialog::editShortcuts()
+{
+    /* The listing is read-only on purpose; rebinding stays in one place. */
+    DialogsProvider::getInstance()->prefsDialog();
 }
 
 AboutDialog::AboutDialog( qt_intf_t *_p_intf)

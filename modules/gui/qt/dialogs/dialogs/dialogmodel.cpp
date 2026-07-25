@@ -123,18 +123,31 @@ void DialogErrorModel::pushError(const DialogError & error)
 
     endInsertRows();
 
+    /* Group by title: distinct media failing for the same reason share a
+     * heading, so the detail is only meaningful while a single item is
+     * concerned. Past that, the list behind "Show Details" is the answer. */
     if (lastNotificationText == error.title)
+    {
         repeatedNotificationCount += 1;
+        if (lastNotificationDetail != error.text)
+            lastNotificationDetail.clear();
+    }
     else{
         lastNotificationText = error.title;
+        lastNotificationDetail = error.text;
         repeatedNotificationCount = 1;
     }
 
+    /* Outliving the popup on purpose: the notification hides itself after a
+     * few seconds, so this is what is left to tell the user something went
+     * wrong while they were looking elsewhere. Only an explicit dismissal or
+     * opening the error list clears it. */
+    unacknowledgedErrorCount += 1;
+    emit unacknowledgedCountChanged();
+
 #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
     assert(qGuiApp);
-    const int badgeNumber = qGuiApp->property("badgeNumber").toInt() + 1;
-    qGuiApp->setBadgeNumber(badgeNumber);
-    qGuiApp->setProperty("badgeNumber", badgeNumber);
+    qGuiApp->setBadgeNumber(unacknowledgedErrorCount);
 #endif
 
     emit countChanged();
@@ -154,19 +167,34 @@ QString DialogErrorModel::notificationText() const
     return lastNotificationText;
 }
 
+QString DialogErrorModel::notificationDetail() const
+{
+    return lastNotificationDetail;
+}
+
 int DialogErrorModel::repeatedMessageCount() const
 {
     return repeatedNotificationCount;
 }
 
+int DialogErrorModel::unacknowledgedCount() const
+{
+    return unacknowledgedErrorCount;
+}
+
 void DialogErrorModel::resetRepeatedMessageCount()
 {
    repeatedNotificationCount = 0;
+
+   if (unacknowledgedErrorCount != 0)
+   {
+       unacknowledgedErrorCount = 0;
+       emit unacknowledgedCountChanged();
+   }
 #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
     // Errors are dismissed, or error dialog is opened.
     assert(qGuiApp);
     qGuiApp->setBadgeNumber(0);
-    qGuiApp->setProperty("badgeNumber", 0);
 #endif
 }
 
