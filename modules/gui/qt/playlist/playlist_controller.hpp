@@ -106,6 +106,8 @@ public:
     Q_PROPERTY(SortOrder sortOrder READ getSortOrder WRITE setSortOrder NOTIFY sortOrderChanged FINAL)
     Q_PROPERTY(MediaStopAction mediaStopAction READ getMediaStopAction WRITE setMediaStopAction NOTIFY mediaStopActionChanged FINAL)
     Q_PROPERTY(int currentIndex READ currentIndex NOTIFY currentIndexChanged FINAL)
+    ///true when a removal or a clear can be taken back
+    Q_PROPERTY(bool canUndo READ canUndo NOTIFY canUndoChanged FINAL)
 
 
 public:
@@ -122,6 +124,19 @@ public:
 
     Q_INVOKABLE void clear();
     Q_INVOKABLE void goTo(uint index, bool startPlaying = false);
+
+    /**
+     * Remove the items at @a indexes, recording them so the removal can be
+     * undone.
+     *
+     * Removal lives here rather than on the model because the undo snapshot
+     * has to be taken while the items still exist, under the same lock that
+     * removes them.
+     */
+    Q_INVOKABLE void removeItems(const QVector<int> &indexes);
+
+    ///restore the media removed by the last removal or clear
+    Q_INVOKABLE void undo();
 
     Q_INVOKABLE void append(const QVariantList&, bool startPlaying = false);
     Q_INVOKABLE void append(const QVariant&, bool startPlaying = false);
@@ -161,6 +176,7 @@ public:
     int currentIndex() const;
     SortOrder getSortOrder() const;
     bool isInitialized() const;
+    bool canUndo() const;
 
 public slots:
     PlaylistItem getCurrentItem() const;
@@ -198,6 +214,8 @@ signals:
     void itemsUpdated(size_t index, const QVector<PlaylistItem>&);
 
     void initializedChanged();
+
+    void canUndoChanged();
 
 private:
     Q_DECLARE_PRIVATE(PlaylistController)

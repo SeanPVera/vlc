@@ -71,6 +71,40 @@ public:
 
     QVariantList sortKeyTitleList;
 
+    /**
+     * A contiguous block of media that used to sit at @a index.
+     *
+     * A single user action may remove several disjoint blocks (a multiple
+     * selection), so one undo entry is a list of these, kept sorted by
+     * ascending index: restoring them in that order puts every block back
+     * where it was.
+     */
+    struct RemovedRun
+    {
+        size_t index;
+        QVector<Media> media;
+    };
+    using UndoEntry = QVector<RemovedRun>;
+
+    /* Bounded: this holds a copy of every removed input item, so it must not
+     * grow without limit. The oldest entry is dropped when full. */
+    static constexpr int MAX_UNDO_DEPTH = 10;
+    QVector<UndoEntry> m_undoStack;
+
+    /**
+     * Snapshot the media at @a indexes so the removal about to happen can be
+     * undone. @a indexes must be sorted ascending.
+     *
+     * The playlist must be locked, and this must run *before* the items are
+     * handed to the core: afterwards they are gone, and the on_items_removed
+     * callback only reports an index and a count.
+     *
+     * Returns true when an entry was pushed. Deliberately emits nothing --
+     * the caller still holds the playlist lock, and a QML binding woken by
+     * canUndoChanged() could re-enter the controller and deadlock on it.
+     */
+    bool pushUndoEntry(const QVector<int> &indexes);
+
 private:
     inline void fillSortKeyTitleList()
     {

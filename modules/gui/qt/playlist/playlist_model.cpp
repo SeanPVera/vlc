@@ -321,26 +321,10 @@ PlaylistListModel::itemAt(int index) const
     return d->m_items[index];
 }
 
-void PlaylistListModel::removeItems(const QVector<int>& indexes)
-{
-    Q_D(PlaylistListModel);
-    if (!d->m_playlist)
-        return;
-    if (indexes.size() == 0)
-        return;
-    QVector<vlc_playlist_item_t *> itemsToRemove;
-    std::transform(indexes.begin(), indexes.end(),std::back_inserter(itemsToRemove), [&] (int index) {
-        return d->m_items[index].raw();
-    });
-
-    {
-        vlc_playlist_locker locker(d->m_playlist);
-        int ret = vlc_playlist_RequestRemove(d->m_playlist, itemsToRemove.constData(),
-                                             itemsToRemove.size(), indexes[0]);
-        if (ret != VLC_SUCCESS)
-            throw std::bad_alloc();
-    }
-}
+/* Removal deliberately lives on PlaylistController instead: undoing it needs a
+ * snapshot of the items taken under the same lock that removes them, and by
+ * the time the controller hears about a removal made here it only gets an
+ * index and a count. See PlaylistController::removeItems(). */
 
 /**
  * Return the target position *after* the move has been applied, knowing the

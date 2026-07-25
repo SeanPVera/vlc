@@ -130,6 +130,26 @@ RowLayout {
         Layout.fillWidth: true
         Layout.fillHeight: true
 
+        implicitWidth: undo.implicitWidth
+        implicitHeight: undo.implicitHeight
+
+        Widgets.IconToolButton {
+            id: undo
+
+            anchors.centerIn: parent
+
+            font.pixelSize: VLCStyle.icon_playlist
+            enabled: MainPlaylistController.canUndo
+            description: qsTr("Undo remove")
+            text: VLCIcons.history
+            onClicked: MainPlaylistController.undo()
+        }
+    }
+
+    Item {
+        Layout.fillWidth: true
+        Layout.fillHeight: true
+
         implicitWidth: clear.implicitWidth
         implicitHeight: clear.implicitHeight
 

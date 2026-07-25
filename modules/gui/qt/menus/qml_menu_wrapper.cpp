@@ -1146,8 +1146,18 @@ void PlaylistContextMenu::popup(int selectedIndex, QPoint pos )
         action = m_menu->addAction( qtr("Remove Selected") );
         action->setIcon(QIcon(":/menu/remove.svg"));
         connect(action, &QAction::triggered, [this]( ) {
-            m_model->removeItems(m_selectionModel->selectedIndexesFlat());
+            m_controler->removeItems(m_selectionModel->selectedIndexesFlat());
         });
+    }
+
+    if (m_controler->canUndo())
+    {
+        action = m_menu->addAction( qtr("Undo Remove") );
+        connect(action, &QAction::triggered, [this]( ) {
+            m_controler->undo();
+        });
+
+        m_menu->addSeparator();
     }
 
 
