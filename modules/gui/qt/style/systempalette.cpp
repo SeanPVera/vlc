@@ -493,6 +493,12 @@ void SystemPalette::makeLightPalette()
 
         setColor(CS, C::Fg, C::Secondary, C::Normal, setColorAlpha(Qt::black, 0.55));
 
+        //`View` is the fallback color set of `getColor()`, so the highlight
+        //roles have to be defined here for every color set that does not
+        //provide its own, otherwise the lookup ends up returning magenta.
+        setColor(CS, C::Bg, C::Highlight, C::Normal, setColorAlpha(orange800, 0.16));
+        setColor(CS, C::Fg, C::Highlight, C::Normal, Qt::black);
+
         setColor(CS, C::Bg, C::Negative, C::Normal, QColor("#fde7e9")); //FIXME
         setColor(CS, C::Fg, C::Negative, C::Normal, Qt::red);
 
@@ -754,6 +760,12 @@ void SystemPalette::makeDarkPalette()
         setColor(CS, C::Fg, C::Primary, C::Disabled, setColorAlpha(Qt::white, 0.3) );
 
         setColor(CS, C::Fg, C::Secondary, C::Normal, setColorAlpha(Qt::white, 0.55));
+
+        //`View` is the fallback color set of `getColor()`, so the highlight
+        //roles have to be defined here for every color set that does not
+        //provide its own, otherwise the lookup ends up returning magenta.
+        setColor(CS, C::Bg, C::Highlight, C::Normal, setColorAlpha(orange500, 0.22));
+        setColor(CS, C::Fg, C::Highlight, C::Normal, Qt::white);
 
         setColor(CS, C::Bg, C::Negative, C::Normal, QColor(Qt::darkRed));
         setColor(CS, C::Fg, C::Negative, C::Normal, Qt::red);
