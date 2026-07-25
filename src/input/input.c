@@ -2933,9 +2933,17 @@ static int InputSourceInit( input_source_t *in, input_thread_t *p_input,
     if( in->p_demux == NULL )
     {
         if( !b_in_can_fail && !input_Stopped( p_input ) )
+        {
+            /* Lead with whatever the user recognises the media by: a
+             * filesystem path when there is one, the MRL otherwise. The
+             * interface may only have room for the first line. */
+            char *psz_path = vlc_uri2path( psz_mrl );
             vlc_dialog_display_error( p_input, _("Your media can't be opened"),
-                                      _("VLC is unable to open the MRL '%s'."
-                                      " Check the log for details."), psz_mrl );
+                                      _("%s\n\nIt may be missing or unreadable,"
+                                      " or its format may not be supported."),
+                                      psz_path != NULL ? psz_path : psz_mrl );
+            free( psz_path );
+        }
         if( in->p_slave_es_out )
         {
             vlc_input_es_out_Delete(in->p_slave_es_out);

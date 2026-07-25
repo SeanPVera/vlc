@@ -64,7 +64,11 @@ class DialogErrorModel : public QAbstractListModel, public Singleton<DialogError
 
     Q_PROPERTY(int count READ count NOTIFY countChanged FINAL)
     Q_PROPERTY(QString notificationText READ notificationText NOTIFY countChanged FINAL)
+    ///detail of the last error, empty when the error carried no detail
+    Q_PROPERTY(QString notificationDetail READ notificationDetail NOTIFY countChanged FINAL)
     Q_PROPERTY(int repeatedMessageCount READ repeatedMessageCount NOTIFY countChanged FINAL)
+    ///number of errors not yet acknowledged by the user
+    Q_PROPERTY(int unacknowledgedCount READ unacknowledgedCount NOTIFY unacknowledgedCountChanged FINAL)
 
 public: // Enums
     enum DialogRoles
@@ -81,7 +85,9 @@ private:
         QString text;
     };
     QString lastNotificationText;
+    QString lastNotificationDetail;
     int repeatedNotificationCount = 0;
+    int unacknowledgedErrorCount = 0;
 
 public:
     explicit DialogErrorModel(qt_intf_t* intf, QObject * parent = nullptr);
@@ -109,10 +115,14 @@ signals:
 
     void countChanged();
 
+    void unacknowledgedCountChanged();
+
 public: // Properties
     int count() const;
     QString notificationText() const;
+    QString notificationDetail() const;
     int repeatedMessageCount() const;
+    int unacknowledgedCount() const;
     Q_INVOKABLE void resetRepeatedMessageCount();
 
 private: // Variables
