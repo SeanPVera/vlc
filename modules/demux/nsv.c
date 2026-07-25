@@ -317,7 +317,7 @@ static int Demux( demux_t *p_demux )
             p_sys->p_audio = es_out_Add( p_demux->out, &p_sys->fmt_audio );
         }
 
-        if( ( p_frame = vlc_stream_Block( p_demux->s, i_size ) ) )
+        if( i_size > 0 && ( p_frame = vlc_stream_Block( p_demux->s, i_size ) ) )
         {
             p_frame->i_dts =
             p_frame->i_pts = VLC_TICK_0 + p_sys->i_pcr;

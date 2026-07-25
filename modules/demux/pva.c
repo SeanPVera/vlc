@@ -198,9 +198,9 @@ static int Demux( demux_t *p_demux )
 
                 if( ( p_frame = vlc_stream_Block( p_demux->s, 8 + 4 + i_pre ) ) )
                 {
-                    i_pts = GetDWBE( &p_frame->p_buffer[8] );
                     if( p_frame->i_buffer > 12 )
                     {
+                        i_pts = GetDWBE( &p_frame->p_buffer[8] );
                         p_frame->p_buffer += 12;
                         p_frame->i_buffer -= 12;
                         block_ChainAppend( &p_sys->p_es, p_frame );
@@ -234,8 +234,15 @@ static int Demux( demux_t *p_demux )
                 }
             }
 
-            if( ( p_frame = vlc_stream_Block( p_demux->s, i_size + i_skip ) ) )
+            if( i_size > 0 &&
+                ( p_frame = vlc_stream_Block( p_demux->s, i_size + i_skip ) ) )
             {
+                /* A short read may return less than the header we skip */
+                if( p_frame->i_buffer < (size_t)i_skip )
+                {
+                    block_Release( p_frame );
+                    break;
+                }
                 p_frame->p_buffer += i_skip;
                 p_frame->i_buffer -= i_skip;
                 if( i_pts != TS_90KHZ_INVALID )
@@ -266,6 +273,12 @@ static int Demux( demux_t *p_demux )
             }
             if( ( p_frame = vlc_stream_Block( p_demux->s, i_size + 8 ) ) )
             {
+                /* A short read may return less than the 8 bytes header */
+                if( p_frame->i_buffer < 8 )
+                {
+                    block_Release( p_frame );
+                    break;
+                }
                 p_frame->p_buffer += 8;
                 p_frame->i_buffer -= 8;
                 /* XXX this a hack, some streams aren't compliant and
