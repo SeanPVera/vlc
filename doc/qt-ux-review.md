@@ -7,6 +7,26 @@ writing.
 
 The five are ordered by how often a typical user hits them.
 
+## Status
+
+| # | Item | Status |
+|---|---|---|
+| 1 | Preferences search | Designed, not implemented |
+| 2 | Play queue search | Designed, not implemented |
+| 3 | Undo for queue removals | **Implemented** |
+| 4 | Errors name the failing media | **Implemented** |
+| 5 | Keyboard shortcuts reference | **Implemented** |
+
+Items 1 and 2 are left unimplemented deliberately rather than for lack of a
+design. Both hinge on a step whose failure mode is silent and wrong rather than
+loud: for item 2, every queue path that consumes a row number has to be remapped
+through the proxy, and getting one wrong means activating or deleting the wrong
+media, with no compile-time signal — QML resolves these at runtime. For item 1,
+the index has to cover widgets that are not `ConfigControl`s, so an incomplete
+one returns "no results" for settings that do exist, which is worse than having
+no search box. Both are worth doing with a build and a running player to check
+against; neither is worth landing unverified.
+
 ---
 
 ## 1. Preferences are unsearchable in the view users actually land in
