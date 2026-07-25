@@ -61,10 +61,21 @@ Concretely:
    (`simple_preferences.hpp:117`), and every `ConfigControl` knows its
    `module_config_t`, so name, title and longtext are already available. Add a
    method that returns `(panel id, widget, searchable text)` triples.
+
+   `controls` alone is not sufficient coverage, though. The Media Library panel
+   builds `MLFoldersEditor` widgets and a reload button directly and appends no
+   `ConfigControl` at all (`simple_preferences.cpp:1023`), so a `controls`-only
+   index silently omits it. The index needs a second source for
+   directly-constructed widgets — simplest is to let each panel register extra
+   `(widget, label text)` pairs explicitly, falling back to walking the panel's
+   `QLabel`/`QGroupBox` titles.
 2. Build the index lazily but eagerly enough to search: currently panels are
-   constructed on first visit (`preferences.cpp:295`). Searching needs all six
-   constructed, which is cheap enough to do on first search rather than on
-   dialog open.
+   constructed on first visit (`preferences.cpp:295`). Searching needs every
+   panel constructed, which is cheap enough to do on first search rather than
+   on dialog open. Note the panel count is not fixed at six — the Media Library
+   category is only added when a media library instance exists
+   (`simple_preferences.cpp:263`), so the index must be built from the
+   categories actually registered rather than from a hardcoded count.
 3. On a hit, switch to the owning panel, scroll the control into view, and
    flash a highlight on it. This is the interaction users know from browser and
    OS settings search.
@@ -120,19 +131,34 @@ the two feel like the same product.
    `QSortFilterProxyModel`, or lift the model onto `BaseModel` the way the
    library models are. Match against title, artist and album — the roles the
    delegate already renders (`playlist/qml/PlaylistDelegate.qml`).
-2. Drop the existing `SearchBox.qml` into `PlaylistToolbar.qml`. No new widget
-   needed.
-3. Filter the *view* only, never the playback order. This is the important
-   design constraint: filtering must not change what plays next, and clearing
-   the filter must restore the full list untouched. Keep the currently-playing
-   item visible (or pinned) even when it does not match, so the user never
-   loses their place.
-4. Make Delete-key removal operate on the filtered selection, and be explicit
+2. **Map proxy rows back to source rows on every path that consumes an index.**
+   This is the bulk of the work and the main source of risk, because the queue
+   currently passes view row numbers straight into source-order APIs:
+   activation calls `MainPlaylistController.goTo(index, true)`
+   (`PlaylistPane.qml:353`), drag-and-drop calls
+   `MainPlaylistController.insert(index, ...)` (`:251`, `:260`), Delete calls
+   `model.removeItems(...)` (`:345`), and current-item positioning uses
+   `MainPlaylistController.currentIndex` (`:296`). Under a filter, activating
+   visible row 0 would play source row 0 rather than the item the user clicked.
+   Every one of those call sites needs an explicit map, plus the context menu
+   and the move/drop handlers.
+3. Filter the *view* only, never the playback order. Filtering must not change
+   what plays next, and clearing the filter must restore the full list
+   untouched. Keep the currently-playing item visible (or pinned) even when it
+   does not match, so the user never loses their place.
+4. Placement needs a small widget change, not a drop-in. `SearchBox.qml`
+   expands its text field downward — `anchors.top: iconButton.bottom`
+   (`widgets/qml/SearchBox.qml:126`) — and `PlaylistToolbar` is the bottom item
+   of `PlaylistPane`, so an unmodified `SearchBox` would open its field below
+   the toolbar and out of the pane. Either give `SearchBox` an upward-opening
+   mode or put the field above the list instead of in the bottom toolbar.
+5. Make Delete-key removal operate on the filtered selection, and be explicit
    in the UI that a filter is active when it is — an active filter plus a
    destructive action is exactly where users make mistakes (see item 3).
 
-Effort: small-to-moderate. Most of the pieces already exist; the work is
-wiring plus getting the filter/playback-order separation right.
+Effort: moderate. The model-side filtering and the widget are nearly free; the
+real cost is the proxy-to-source mapping audit in step 2, which touches most of
+`PlaylistPane.qml` and must be complete to avoid acting on the wrong item.
 
 ---
 
@@ -179,20 +205,33 @@ halves.
 Implement both, each where it fits:
 
 1. **Undo for removals.** Keep a bounded stack (say 10 entries) in
-   `PlaylistController` holding removed items plus their indices. Removal
-   already goes through `PlaylistListModel::removeItems`
-   (`playlist/playlist_model.cpp:324`) and reinsertion through
-   `PlaylistController::insert`, so both directions exist. Bind `Ctrl+Z` in
-   the playlist pane and add an undo entry to the queue's context menu.
-2. **A snapshot for Clear.** Push the whole queue onto the same stack before
+   `PlaylistController` holding removed items plus their indices. Reinsertion
+   already exists via `PlaylistController::insert`.
+
+   Capturing the removals is the part that needs care. `PlaylistListModel::removeItems`
+   calls `vlc_playlist_RequestRemove` directly (`playlist/playlist_model.cpp:338`),
+   bypassing `PlaylistController` entirely, and the controller's
+   `on_items_removed` callback only learns an index and a count *after* the
+   items are gone — too late to snapshot them. So a stack that merely lives in
+   the controller would leave the keyboard and context-menu paths
+   non-undoable. The model must take the snapshot while it still holds the
+   items and hand it to the controller before calling into the core.
+2. Bind undo in the playlist pane and add an entry to the queue's context menu
+   — but not unconditionally to `Ctrl+Z`. On macOS the `key-random` default is
+   `Command+z` (`src/libvlc-module.c:2375`), the same chord as the platform's
+   standard Undo, so an unguarded binding either shadows random-toggle or
+   collides with it. Route undo through a conflict-checked action and, on
+   macOS, either scope it to the playlist pane's focus or reassign the random
+   binding.
+3. **A snapshot for Clear.** Push the whole queue onto the same stack before
    `vlc_playlist_Clear()`, making Clear undoable rather than merely confirmed.
-3. **A toast with an inline Undo action.** "Removed 12 items — Undo". This is
+4. **A toast with an inline Undo action.** "Removed 12 items — Undo". This is
    strictly better than a pre-action confirm dialog: no friction in the common
    case, full recovery in the mistake case. The toast infrastructure already
    exists (`Widgets.DrawerExt` as used by the error popup in
    `dialogs/dialogs/qml/Dialogs.qml:158`).
-4. **A confirmation for Clear only when the queue is large** (a threshold of
-   ~25 items is a reasonable starting point) and only if step 2 is not shipped.
+5. **A confirmation for Clear only when the queue is large** (a threshold of
+   ~25 items is a reasonable starting point) and only if step 3 is not shipped.
    If Clear is undoable, the dialog is unnecessary.
 
 Effort: moderate, and the payoff is disproportionate — this is the highest
@@ -231,12 +270,21 @@ So the user sees a red bar reading "Your media can't be opened", for 5 seconds
 (`Dialogs.qml:259`), with no indication of *which* media. In a 200-item queue
 where item 47 is a dead symlink, that message is close to useless.
 
-The escape hatch makes it worse rather than better. "Show Details" calls
-`DialogsProvider.messagesDialog(1)` (`Dialogs.qml:232`), which opens the
-Messages dialog — a developer tool with a verbosity spinbox
-(`dialogs/messages/messages.cpp:99`), a "Save log file as..." button, and a
-"Playlist Tree" debug tab (`messages.cpp:114`). The user asked "which file
-failed?" and got a log viewer.
+The escape hatch is better than the toast, though it is not obvious from the
+button. "Show Details" calls `DialogsProvider.messagesDialog(1)`
+(`Dialogs.qml:232`) → `MessagesDialog::showTab(1)`, which selects tab index 1 —
+the **Errors** tab (`dialogs/messages/messages_panel.ui:93`), not the raw
+message log. That tab does render both halves of every error, title *and*
+detail, so the MRL is there (`messages.cpp:195` and `:199`).
+
+So the information is not unreachable; it is just absent from the surface the
+user is actually looking at, and the route to it is unmarked. What is fair to
+say about the destination is narrower than "it's a log viewer": the Errors tab
+is a plain `QPlainTextEdit` of appended text with no per-error structure or
+actions, and it sits in a window shared with a verbosity spinbox
+(`messages.cpp:99`), a "Save log file as..." button, and a Modules Tree tab —
+framing that reads as diagnostics rather than as "here is the file that
+failed".
 
 And the detail text itself instructs the user to "Check the log for details",
 which is the application asking the person to do its job.
@@ -264,12 +312,12 @@ platforms with Qt ≥ 6.5 (`dialogmodel.cpp:133-138`) but nothing in-window.
    reason where one is available (file not found / permission denied /
    unsupported format are all distinguishable at the point of failure and
    deserve distinct, actionable messages).
-3. **Retarget "Show Details."** Point it at a user-facing error list —
-   timestamp, item name, reason, and a "Show in folder" / "Remove from queue"
-   action — rather than at the raw log. The Messages dialog already separates
-   errors from messages internally (`messages.cpp:170`); the errors half just
-   needs a presentable front end. Keep the log reachable from there for people
-   who want it.
+3. **Give the existing Errors tab structure.** The destination already exists
+   and already has the data, so this is presentation, not plumbing: replace the
+   flat `QPlainTextEdit` with one row per error — timestamp, item name, reason —
+   and per-row actions ("Show in folder", "Remove from queue"). Separating it
+   from the verbosity/log furniture would also stop it reading as a diagnostics
+   panel.
 4. **Do not silently expire errors.** Let the toast auto-hide, but leave a
    persistent, dismissible indicator when unacknowledged errors remain, so the
    5-second window is not the only chance to notice.
@@ -363,7 +411,7 @@ infrastructure not connected to the place the user needs it:
 |---|---|
 | No settings search in Simple mode | `SearchLineEdit`, used in two other modes of the same dialog |
 | No play queue search | `SearchBox.qml` + `BaseModel::searchPattern`, used by the library views |
-| Errors show no detail | `DialogError::text` is populated and stored, just never rendered |
+| Notifications show no detail | `DialogError::text` is populated, stored, and already rendered in the Errors tab — just not in the notification |
 | No shortcut reference | Hotkey table and config are already searchable in Preferences |
 
 Only undo (item 3) requires genuinely new state. That makes this a favourable
