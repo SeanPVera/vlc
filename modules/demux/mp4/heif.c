@@ -276,9 +276,12 @@ static block_t *ReadItemExtents( demux_t *p_demux, uint32_t i_item_id,
                     MP4_Box_t *idat = MP4_BoxGet( p_sys->p_root, "meta/idat" );
                     if(!idat)
                         break;
-                    i_offset += idat->i_pos + mp4_box_headersize(idat);
+                    const size_t i_idathdr = mp4_box_headersize(idat);
+                    if( idat->i_size < i_idathdr )
+                        break;
+                    i_offset += idat->i_pos + i_idathdr;
                     if( i_length == 0 ) /* Entire container */
-                        i_length = idat->i_size - mp4_box_headersize(idat);
+                        i_length = idat->i_size - i_idathdr;
                 }
                 else
                 {

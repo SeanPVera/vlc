@@ -111,6 +111,8 @@ static scte18_cea_t * scte18_cea_Decode( atsc_a65_handle_t *p_handle, const bloc
     if( i_buffer < 23 + len )
         goto error;
     p_cea->psz_eas_event_code = malloc( len + 1 );
+    if( !p_cea->psz_eas_event_code )
+        goto error;
     memcpy( p_cea->psz_eas_event_code, &p_buffer[1], len );
     p_cea->psz_eas_event_code[len] = 0;
     BUF_ADVANCE( len + 1 );

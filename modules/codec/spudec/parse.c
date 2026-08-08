@@ -246,6 +246,11 @@ static void OutputPicture( decoder_t *p_dec,
      * generating 4 codes.
      */
     p_pixeldata = vlc_alloc( p_sys->i_rle_size, sizeof(*p_pixeldata) * 2 * 2 );
+    if( unlikely(p_pixeldata == NULL) )
+    {
+        subpicture_Delete( p_spu );
+        return;
+    }
 
     size_t pixeldata_size = p_sys->i_rle_size * 2 * 2; // in 16-bit
 

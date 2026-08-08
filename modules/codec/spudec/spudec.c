@@ -235,15 +235,20 @@ static block_t *Reassemble( decoder_t *p_dec, block_t *p_block )
 
     if( p_sys->i_spu_size <= 0 )
     {
+        const int i_rle_offset = ( p_block->p_buffer[2] << 8 )|
+            p_block->p_buffer[3];
+
         p_sys->i_spu_size = ( p_block->p_buffer[0] << 8 )|
             p_block->p_buffer[1];
-        p_sys->i_rle_size = ( ( p_block->p_buffer[2] << 8 )|
-            p_block->p_buffer[3] ) - 4;
+        p_sys->i_rle_size = i_rle_offset - 4;
 
         /* msg_Dbg( p_dec, "i_spu_size=%d i_rle=%d",
                     p_sys->i_spu_size, p_sys->i_rle_size ); */
 
-        if( p_sys->i_spu_size <= 0 || p_sys->i_rle_size >= p_sys->i_spu_size )
+        /* The RLE data starts after the 4 bytes header, so an offset below
+         * that would give a negative RLE size and wrap around later on. */
+        if( p_sys->i_spu_size <= 0 || i_rle_offset < 4 ||
+            p_sys->i_rle_size >= p_sys->i_spu_size )
         {
             p_sys->i_spu_size = 0;
             p_sys->i_rle_size = 0;
